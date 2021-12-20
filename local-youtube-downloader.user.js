@@ -322,7 +322,6 @@
   <template v-if="!isLiveStream">
     <div @click="hide=!hide" class="box-toggle div-a t-center fs-14px c-pointer lh-20" v-text="strings.togglelinks"></div>
     <div :class="{'hide':hide}">
-      <div class="t-center fs-14px" v-text="strings.videoid+id"></div>
       <div class="d-flex">
         <div class="f-1 of-h">
           <div class="t-center fs-14px" v-text="strings.stream"></div>
