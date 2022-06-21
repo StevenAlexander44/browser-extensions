@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Local YouTube Downloader
-// @version      1.0
+// @version      1.1
 // @author       Some Guy
 // @description  Download YouTube videos without external service.
 // @match        https://*.youtube.com/*
@@ -319,16 +319,16 @@
 				<div class="f-1 of-h">
 					<div class="t-center fs-14px" v-text="strings.both"></div>
 					<a class="ytdl-link-btn fs-14px t-center c-pointer" @click="dllow" v-text="strings.dllow"></a>
-					<a class="ytdl-link-btn fs-14px" target="_blank" v-for="vid in stream" :href="vid.url" :title="vid.type" v-text="formatStreamText(vid)"></a>
+					<a class="ytdl-link-btn fs-14px" target="_blank" v-for="vid in stream" :href="vid.url" :title="vid.type" v-text="formatText(vid)"></a>
 					<a class="ytdl-link-btn fs-14px t-center c-pointer" @click="dlmp4" v-text="strings.dlmp4"></a>
 					<div class="t-center fs-14px" v-text="strings.audio"></div>
-					<a class="ytdl-link-btn fs-14px" target="_blank" v-for="vid in audio" :href="vid.url" :title="vid.type" v-text="formatAudioText(vid)"></a>
+					<a class="ytdl-link-btn fs-14px" target="_blank" v-for="vid in audio" :href="vid.url" :title="vid.type" v-text="formatText(vid)"></a>
 					<div class="t-center fs-14px" v-text="strings.highvideo"></div>
-					<a class="ytdl-link-btn fs-14px" target="_blank" v-for="vid in highvideo" :href="vid.url" :title="vid.type" v-text="formatVideoText(vid)"></a>
+					<a class="ytdl-link-btn fs-14px" target="_blank" v-for="vid in highvideo" :href="vid.url" :title="vid.type" v-text="formatText(vid)"></a>
 				</div>
 				<div class="f-1 of-h">
 					<div class="t-center fs-14px" v-text="strings.lowvideo"></div>
-					<a class="ytdl-link-btn fs-14px" target="_blank" v-for="vid in lowvideo" :href="vid.url" :title="vid.type" v-text="formatVideoText(vid)"></a>
+					<a class="ytdl-link-btn fs-14px" target="_blank" v-for="vid in lowvideo" :href="vid.url" :title="vid.type" v-text="formatText(vid)"></a>
 				</div>
 			</div>
 		</div>
@@ -364,14 +364,20 @@
 			dlmp4() {
 				openDownloadModel(this.adaptive, this.details.title, 'high')
 			},
-			formatStreamText(vid) {
-				return `${vid.itag} - ${vid.mimeType} - ${vid.width}x${vid.height}@${vid.fps}fps - ${(vid.approxDurationMs/1000*vid.bitrate/8/1024/1024).toFixed(2)}MB`
-			},
-			formatAudioText(vid) {
-				return `${vid.itag} - ${vid.mimeType} - ${(vid.contentLength/1024/1024).toFixed(2)}MB`
-			},
-			formatVideoText(vid) {
-				return `${vid.itag} - ${vid.mimeType} - ${vid.width}x${vid.height}@${vid.fps}fps - ${(vid.contentLength/1024/1024).toFixed(2)}MB`
+			formatText(vid) {
+				let id = vid.itag
+				let size = `${(vid.contentLength/1024/1024).toFixed(2)}MiB`
+				if (!vid.contentLength) {
+					size = `${(vid.approxDurationMs/1000*vid.bitrate/8/1024/1024).toFixed(2)}MiB`
+				}
+				let res = `${vid.width}x${vid.height}@${vid.fps}fps`
+				let ext = vid.mimeType.split(';')[0].split('/')[1]
+				let codec = vid.mimeType.split('=')[1]
+				var formatted = [id, size, res, ext, codec]
+				if (!vid.mimeType.includes('video')) {
+					formatted = [id, size, ext, codec]
+				}
+				return formatted.join(' - ')
 			}
 		},
 		template
