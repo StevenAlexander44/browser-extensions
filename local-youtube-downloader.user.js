@@ -1,20 +1,17 @@
 // ==UserScript==
 // @name         Local YouTube Downloader
-// @version      0.9.49.fork
-// @description  Download YouTube videos without external service.
+// @version      1.0
 // @author       Some Guy
+// @description  Download YouTube videos without external service.
 // @match        https://*.youtube.com/*
 // @require      https://unpkg.com/vue@2.6.10/dist/vue.js
 // @require      https://unpkg.com/xfetch-js@0.3.4/xfetch.min.js
 // @require      https://unpkg.com/@ffmpeg/ffmpeg@0.6.1/dist/ffmpeg.min.js
 // @require      https://bundle.run/p-queue@6.3.0
+// @connect      googlevideo.com
+// @run-at       document-end
 // @grant        GM_xmlhttpRequest
 // @grant        unsafeWindow
-// @run-at       document-end
-// @connect      googlevideo.com
-// @compatible   firefox >=52
-// @compatible   chrome >=55
-// @license      MIT
 // ==/UserScript==
 
 ;(function () {
@@ -29,10 +26,12 @@
 
 	const strings = {
 		togglelinks: 'Show/Hide Links',
-		stream: 'Stream',
-		adaptive: 'Adaptive',
-        dllow: 'Custom low-resolution mp4',
-		dlmp4: 'High-resolution mp4',
+		both: 'Video and Audio',
+		dllow: 'Custom resolution mp4',
+		dlmp4: 'High resolution mp4',
+		audio: 'Audio Only',
+		highvideo: 'High Quality Video Only',
+		lowvideo: 'Low Quality Video Only',
 		get_video_failed: 'Failed to get video infomation for unknown reason, refresh the page may work.',
 		live_stream_disabled_message: 'Local YouTube Downloader is not available for live stream'
 	}
@@ -123,17 +122,11 @@
 				xhr.method = 'GET'
 				xhr.url = url
 				xhr.headers = {
- 					'User-Agent':
-						'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36 Edg/94.0.992.50',
+ 					'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.81 Safari/537.36 Edg/94.0.992.50',
  					Range: `bytes=${start}-${end ? end - 1 : ''}`,
-					Accept: '*/*',
- 					'Accept-Encoding': 'identity',
- 					'Accept-Language': 'en-us,en;q=0.5',
+					Accept: '*/*', 'Accept-Encoding': 'identity', 'Accept-Language': 'en-us,en;q=0.5',
 					Origin: 'https://www.youtube.com',
-					Referer: 'https://www.youtube.com/',
-					'sec-fetch-dest': 'empty',
-					'sec-fetch-mode': 'cors',
-					'sec-fetch-site': 'cross-site'
+					Referer: 'https://www.youtube.com/' ,'sec-fetch-dest': 'empty', 'sec-fetch-mode': 'cors', 'sec-fetch-site': 'cross-site'
  				}
 				xhr.onload = obj => {
 					if (obj.status >= 200 && obj.status < 300) {
@@ -319,26 +312,30 @@
 
 	const template = `
 <div class="box" :class="{'dark':dark}">
-  <template v-if="!isLiveStream">
-    <div @click="hide=!hide" class="box-toggle div-a t-center fs-14px c-pointer lh-20" v-text="strings.togglelinks"></div>
-    <div :class="{'hide':hide}">
-      <div class="d-flex">
-        <div class="f-1 of-h">
-          <div class="t-center fs-14px" v-text="strings.stream"></div>
-          <a class="ytdl-link-btn fs-14px t-center c-pointer" @click="dllow" v-text="strings.dllow"></a>
-          <a class="ytdl-link-btn fs-14px" target="_blank" v-for="vid in stream" :href="vid.url" :title="vid.type" v-text="formatStreamText(vid)"></a>
-          <a class="ytdl-link-btn fs-14px t-center c-pointer" @click="dlmp4" v-text="strings.dlmp4"></a>
-        </div>
-        <div class="f-1 of-h">
-          <div class="t-center fs-14px" v-text="strings.adaptive"></div>
-          <a class="ytdl-link-btn fs-14px" target="_blank" v-for="vid in adaptive" :href="vid.url" :title="vid.type" v-text="formatAdaptiveText(vid)"></a>
-        </div>
-      </div>
-    </div>
-  </template>
-  <template v-else>
-    <div class="t-center fs-14px lh-20" v-text="strings.live_stream_disabled_message"></div>
-  </template>
+	<template v-if="!isLiveStream">
+		<div @click="hide=!hide" class="box-toggle div-a t-center fs-14px c-pointer lh-20" v-text="strings.togglelinks"></div>
+		<div :class="{'hide':hide}">
+			<div class="d-flex">
+				<div class="f-1 of-h">
+					<div class="t-center fs-14px" v-text="strings.both"></div>
+					<a class="ytdl-link-btn fs-14px t-center c-pointer" @click="dllow" v-text="strings.dllow"></a>
+					<a class="ytdl-link-btn fs-14px" target="_blank" v-for="vid in stream" :href="vid.url" :title="vid.type" v-text="formatStreamText(vid)"></a>
+					<a class="ytdl-link-btn fs-14px t-center c-pointer" @click="dlmp4" v-text="strings.dlmp4"></a>
+					<div class="t-center fs-14px" v-text="strings.audio"></div>
+					<a class="ytdl-link-btn fs-14px" target="_blank" v-for="vid in audio" :href="vid.url" :title="vid.type" v-text="formatAudioText(vid)"></a>
+					<div class="t-center fs-14px" v-text="strings.highvideo"></div>
+					<a class="ytdl-link-btn fs-14px" target="_blank" v-for="vid in highvideo" :href="vid.url" :title="vid.type" v-text="formatVideoText(vid)"></a>
+				</div>
+				<div class="f-1 of-h">
+					<div class="t-center fs-14px" v-text="strings.lowvideo"></div>
+					<a class="ytdl-link-btn fs-14px" target="_blank" v-for="vid in lowvideo" :href="vid.url" :title="vid.type" v-text="formatVideoText(vid)"></a>
+				</div>
+			</div>
+		</div>
+	</template>
+	<template v-else>
+		<div class="t-center fs-14px lh-20" v-text="strings.live_stream_disabled_message"></div>
+	</template>
 </div>
 `.slice(1)
 	const app = new Vue({
@@ -370,12 +367,11 @@
 			formatStreamText(vid) {
 				return `${vid.itag} - ${vid.mimeType} - ${vid.width}x${vid.height}@${vid.fps}fps - ${(vid.approxDurationMs/1000*vid.bitrate/8/1024/1024).toFixed(2)}MB`
 			},
-			formatAdaptiveText(vid) {
-				let str = `${vid.itag} - ${vid.mimeType} - ${vid.width}x${vid.height}@${vid.fps}fps - ${(vid.contentLength/1024/1024).toFixed(2)}MB`
-				if (vid.mimeType.includes('audio')) {
-					str = `${vid.itag} - ${vid.mimeType} - ${(vid.contentLength/1024/1024).toFixed(2)}MB`
-				}
-				return str
+			formatAudioText(vid) {
+				return `${vid.itag} - ${vid.mimeType} - ${(vid.contentLength/1024/1024).toFixed(2)}MB`
+			},
+			formatVideoText(vid) {
+				return `${vid.itag} - ${vid.mimeType} - ${vid.width}x${vid.height}@${vid.fps}fps - ${(vid.contentLength/1024/1024).toFixed(2)}MB`
 			}
 		},
 		template
@@ -411,7 +407,10 @@
 			app.isLiveStream = data.playerResponse.playabilityStatus.liveStreamability != null
 			app.id = id
 			app.stream = data.stream
-			app.adaptive = data.adaptive
+			app.video = data.adaptive.filter(x => x.mimeType.includes('video'));
+			app.highvideo = app.video.filter(x => parseInt(x.qualityLabel) > 720);
+			app.lowvideo = app.video.filter(x => parseInt(x.qualityLabel) <= 720);
+			app.audio = data.adaptive.filter(x => x.mimeType.includes('audio'));
 			app.details = data.details
 		} catch (err) {
 			alert(app.strings.get_video_failed)
@@ -479,8 +478,8 @@
 	overflow: hidden;
 }
 .box{
-  padding-top: .5em;
-  padding-bottom: .5em;
+	padding-top: .5em;
+	padding-bottom: .5em;
 	border-bottom: 1px solid var(--yt-border-color);
 	font-family: Arial;
 }
@@ -510,7 +509,7 @@ a:hover, .div-a:hover{
 	color: var(--yt-endpoint-color, var(--yt-spec-text-primary));
 }
 .box.dark .ytdl-link-btn{
-	color: var(--yt-endpoint-color, var(--yt-spec-text-primary));
+	color: var(--yt-spec-call-to-action);
 }
 .box.dark .ytdl-link-btn:hover{
 	color: rgba(200, 200, 255, 0.8);
