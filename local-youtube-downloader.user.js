@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Local YouTube Downloader
-// @version      1.2
+// @version      1.3
 // @author       Some Guy
 // @description  Download YouTube videos without external service.
 // @match        https://*.youtube.com/*
@@ -14,16 +14,12 @@
 // @grant        unsafeWindow
 // ==/UserScript==
 
-;(function () {
+;(function() {
 	'use strict'
 	const DEBUG = true
-	const createLogger = (console, tag) =>
-		Object.keys(console)
-		.map(k => [k, (...args) => (DEBUG ? console[k](tag + ': ' + args[0], ...args.slice(1)) : void 0)])
-		.reduce((acc, [k, fn]) => ((acc[k] = fn), acc), {})
+	const createLogger = (console, tag) => Object.keys(console).map(k => [k, (...args) => (DEBUG ? console[k](tag + ': ' + args[0], ...args.slice(1)) : void 0)]).reduce((acc, [k, fn]) => ((acc[k] = fn), acc), {})
 	const logger = createLogger(console, 'YTDL')
 	const sleep = ms => new Promise(res => setTimeout(res, ms))
-
 	const strings = {
 		togglelinks: 'Show/Hide Links',
 		both: 'Video and Audio',
@@ -58,9 +54,7 @@
 			}
 			const fnnameresult = /=([a-zA-Z0-9\$_]+?)\(decodeURIComponent/.exec(data)
 			const fnname = fnnameresult[1]
-			const _argnamefnbodyresult = new RegExp(escapeRegExp(fnname) + '=function\\((.+?)\\){((.+)=\\2.+?)}').exec(
-				data
-			)
+			const _argnamefnbodyresult = new RegExp(escapeRegExp(fnname) + '=function\\((.+?)\\){((.+)=\\2.+?)}').exec(data)
 			const [_, argname, fnbody] = _argnamefnbodyresult
 			const helpernameresult = /;([a-zA-Z0-9$_]+?)\..+?\(/.exec(fnbody)
 			const helpername = helpernameresult[1]
@@ -68,7 +62,8 @@
 			const helper = helperresult[0]
 			logger.log(`parsedecsig result: %s=>{%s\n%s}`, argname, helper, fnbody)
 			return new Function([argname], helper + '\n' + fnbody)
-		} catch (e) {
+		}
+		catch (e) {
 			logger.error('parsedecsig error: %o', e)
 			logger.info('script content: %s', data)
 			logger.info('If you encounter this error, please copy the full "script content" to https://pastebin.com/ for me.')
@@ -88,12 +83,9 @@
 				}
 			}
 		}
-
 		let adaptive = []
 		if (playerResponse.streamingData.adaptiveFormats) {
-			adaptive = playerResponse.streamingData.adaptiveFormats.map(x =>
-				Object.assign({}, x, parseQuery(x.cipher || x.signatureCipher))
-			)
+			adaptive = playerResponse.streamingData.adaptiveFormats.map(x => Object.assign({}, x, parseQuery(x.cipher || x.signatureCipher)))
 			logger.log(`video %s adaptive: %o`, id, adaptive)
 			for (const obj of adaptive) {
 				if (obj.s) {
@@ -103,15 +95,21 @@
 			}
 		}
 		logger.log(`video %s result: %o`, id, {
-			stream, adaptive
+			stream,
+			adaptive
 		})
 		return {
-			stream, adaptive, details: playerResponse.videoDetails, playerResponse
+			stream,
+			adaptive,
+			details: playerResponse.videoDetails,
+			playerResponse
 		}
 	}
-
 	// video downloader
-	const xhrDownloadUint8Array = async ({ url, contentLength }, progressCb) => {
+	const xhrDownloadUint8Array = async ({
+		url,
+		contentLength
+	}, progressCb) => {
 		if (typeof contentLength === 'string') contentLength = parseInt(contentLength)
 		progressCb({
 			loaded: 0,
@@ -119,8 +117,7 @@
 			speed: 0
 		})
 		const chunkSize = 65536
-		const getBuffer = (start, end) =>
-			fetch(url + `&range=${start}-${end ? end - 1 : ''}`).then(r => r.arrayBuffer())
+		const getBuffer = (start, end) => fetch(url + `&range=${start}-${end ? end - 1 : ''}`).then(r => r.arrayBuffer())
 		const data = new Uint8Array(contentLength)
 		let downloaded = 0
 		const queue = new pQueue.default({
@@ -134,29 +131,26 @@
 			const end = exceeded ? null : start + chunkSize
 			const p = queue.add(() => {
 				console.log('dl start', url, start, end)
-				return getBuffer(start, end)
-					.then(buf => {
-						console.log('dl done', url, start, end)
-						downloaded += curChunkSize
-						data.set(new Uint8Array(buf), start)
-						const ds = (Date.now() - startTime + 1) / 1000
-						progressCb({
-							loaded: downloaded,
-							total: contentLength,
-							speed: downloaded / ds
-						})
+				return getBuffer(start, end).then(buf => {
+					console.log('dl done', url, start, end)
+					downloaded += curChunkSize
+					data.set(new Uint8Array(buf), start)
+					const ds = (Date.now() - startTime + 1) / 1000
+					progressCb({
+						loaded: downloaded,
+						total: contentLength,
+						speed: downloaded / ds
 					})
-					.catch(err => {
-						queue.clear()
-						alert('Download error')
-					})
+				}).catch(err => {
+					queue.clear()
+					alert('Download error')
+				})
 			})
 			ps.push(p)
 		}
 		await Promise.all(ps)
 		return data
 	}
-
 	const ffWorker = FFmpeg.createWorker({
 		logger: DEBUG ? m => logger.log(m.message) : () => {}
 	})
@@ -169,7 +163,9 @@
 			input: ['video.mp4', 'audio.mp4'],
 			output: 'output.mp4'
 		})
-		const { data } = await ffWorker.read('output.mp4')
+		const {
+			data
+		} = await ffWorker.read('output.mp4')
 		await ffWorker.remove('output.mp4')
 		return data
 	}
@@ -206,11 +202,7 @@
 `
 
 	function openDownloadModel(adaptive, title, type) {
-		const win = open(
-			'',
-			'Video Download',
-			`toolbar=no,height=${screen.height / 2},width=${screen.width / 2},left=${screenLeft},top=${screenTop}`
-		)
+		const win = open('', 'Video Download', `toolbar=no,height=${screen.height / 2},width=${screen.width / 2},left=${screenLeft},top=${screenTop}`)
 		const div = win.document.createElement('div')
 		win.document.body.appendChild(div)
 		win.document.title = `Downloading "${title}"`
@@ -240,20 +232,18 @@
 					var videoObj;
 					var audioObj;
 					if (type == 'high') {
-						videoObj = adaptive
-						.filter(x => x.mimeType.includes('video/mp4') || x.mimeType.includes('video/webm'))
-						.map(v => {
+						videoObj = adaptive.filter(x => x.mimeType.includes('video/mp4') || x.mimeType.includes('video/webm')).map(v => {
 							const [_, quality, fps] = /(\d+)p(\d*)/.exec(v.qualityLabel)
 							v.qualityNum = parseInt(quality)
 							v.fps = fps ? parseInt(fps) : 30
 							return v
-						})
-						.sort((a, b) => {
+						}).sort((a, b) => {
 							if (a.qualityNum === b.qualityNum) return b.fps - a.fps // ex: 30-60=-30, then a will be put before b
 							return b.qualityNum - a.qualityNum
 						})[0]
 						audioObj = adaptive.find(x => x.mimeType.includes('audio/mp4'))
-					} else {
+					}
+					else {
 						var codes = type.split('|')
 						var videoCode = codes[0]
 						var audioCode = codes[1]
@@ -301,7 +291,6 @@
 		}).$mount(div)
 		dlModalApp.start(adaptive, title, type)
 	}
-
 	const template = `
 <div class="box" :class="{'dark':dark}">
 	<template v-if="!isLiveStream">
@@ -349,14 +338,14 @@
 		},
 		methods: {
 			dllow() {
-				let vCode = parseInt(prompt("Video code",160))
-				let aCode = parseInt(prompt("Audio code",140))
-        openDownloadModel(this.adaptive, this.details.title, vCode + '|' + aCode)
+				let vCode = parseInt(prompt("Video code", 160))
+				let aCode = parseInt(prompt("Audio code", 140))
+				openDownloadModel(this.adaptive, this.details.title, vCode + '|' + aCode)
 			},
-      dlmp4() {
-        openDownloadModel(this.adaptive, this.details.title, 'high')
-      },
-      formatText(vid) {
+			dlmp4() {
+				openDownloadModel(this.adaptive, this.details.title, 'high')
+			},
+			formatText(vid) {
 				let id = vid.itag
 				let size = `${(vid.contentLength/1024/1024).toFixed(2)}MiB`
 				if (!vid.contentLength) {
@@ -374,15 +363,15 @@
 		},
 		template
 	})
-
 	// attach element
 	const shadowHost = $el('div')
-	const shadow = shadowHost.attachShadow ? shadowHost.attachShadow({ mode: 'closed' }) : shadowHost // no shadow dom
+	const shadow = shadowHost.attachShadow ? shadowHost.attachShadow({
+		mode: 'closed'
+	}) : shadowHost // no shadow dom
 	logger.log('shadowHost: %o', shadowHost)
 	const container = $el('div')
 	shadow.appendChild(container)
 	app.$mount(container)
-
 	if (DEBUG && typeof unsafeWindow !== 'undefined') {
 		// expose some functions for debugging
 		unsafeWindow.$app = app
@@ -392,12 +381,7 @@
 	}
 	const load = async playerResponse => {
 		try {
-			const basejs =
-				(typeof ytplayer !== 'undefined' && 'config' in ytplayer && ytplayer.config.assets ?
-					'https://' + location.host + ytplayer.config.assets.js :
-					'web_player_context_config' in ytplayer ?
-					'https://' + location.host + ytplayer.web_player_context_config.jsUrl :
-					null) || $('script[src$="base.js"]').src
+			const basejs = (typeof ytplayer !== 'undefined' && 'config' in ytplayer && ytplayer.config.assets ? 'https://' + location.host + ytplayer.config.assets.js : 'web_player_context_config' in ytplayer ? 'https://' + location.host + ytplayer.web_player_context_config.jsUrl : null) || $('script[src$="base.js"]').src
 			const decsig = await xf.get(basejs).text(parseDecsig)
 			const id = parseQuery(location.search).v
 			const data = parseResponse(id, playerResponse, decsig)
@@ -410,12 +394,12 @@
 			app.lowvideo = app.video.filter(x => parseInt(x.qualityLabel) <= 720);
 			app.audio = data.adaptive.filter(x => x.mimeType.includes('audio'));
 			app.details = data.details
-		} catch (err) {
+		}
+		catch (err) {
 			alert(app.strings.get_video_failed)
 			logger.error('load', err)
 		}
 	}
-
 	// hook fetch response
 	const ff = fetch
 	unsafeWindow.fetch = (...args) => {
@@ -429,18 +413,13 @@
 		}
 		return ff(...args)
 	}
-
 	// attach element
 	setInterval(() => {
-		const el =
-			$('#info-contents') ||
-			$('#watch-header') ||
-			$('.page-container:not([hidden]) ytm-item-section-renderer>lazy-list')
+		const el = $('#info-contents') || $('#watch-header') || $('.page-container:not([hidden]) ytm-item-section-renderer>lazy-list')
 		if (el && !el.contains(shadowHost)) {
 			el.appendChild(shadowHost)
 		}
 	}, 100)
-
 	// init
 	unsafeWindow.addEventListener('load', () => {
 		const firstResp = unsafeWindow?.ytplayer?.config?.args?.raw_player_response
@@ -448,7 +427,6 @@
 			load(firstResp)
 		}
 	})
-
 	// listen to dark mode toggle
 	const $html = $('html')
 	new MutationObserver(() => {
@@ -457,7 +435,6 @@
 		attributes: true
 	})
 	app.dark = $html.getAttribute('dark') !== null
-
 	const css = `
 .hide{
 	display: none;
