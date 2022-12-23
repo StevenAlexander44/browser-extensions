@@ -19,8 +19,8 @@
 	const DEBUG = true
 	const createLogger = (console, tag) =>
 		Object.keys(console)
-			.map(k => [k, (...args) => (DEBUG ? console[k](tag + ': ' + args[0], ...args.slice(1)) : void 0)])
-			.reduce((acc, [k, fn]) => ((acc[k] = fn), acc), {})
+		.map(k => [k, (...args) => (DEBUG ? console[k](tag + ': ' + args[0], ...args.slice(1)) : void 0)])
+		.reduce((acc, [k, fn]) => ((acc[k] = fn), acc), {})
 	const logger = createLogger(console, 'YTDL')
 	const sleep = ms => new Promise(res => setTimeout(res, ms))
 
@@ -49,16 +49,20 @@
 				const obj = {}
 				const document = {
 					createElement: () => obj,
-					head: { appendChild: () => {} }
+					head: {
+						appendChild: () => {}
+					}
 				}
 				eval(data)
 				data = obj.innerHTML
 			}
-			const fnnameresult = /=([a-zA-Z0-9\$]+?)\(decodeURIComponent/.exec(data)
+			const fnnameresult = /=([a-zA-Z0-9\$_]+?)\(decodeURIComponent/.exec(data)
 			const fnname = fnnameresult[1]
-			const _argnamefnbodyresult = new RegExp(escapeRegExp(fnname) + '=function\\((.+?)\\){((.+)=\\2.+?)}').exec(data)
+			const _argnamefnbodyresult = new RegExp(escapeRegExp(fnname) + '=function\\((.+?)\\){((.+)=\\2.+?)}').exec(
+				data
+			)
 			const [_, argname, fnbody] = _argnamefnbodyresult
-			const helpernameresult = /;(.+?)\..+?\(/.exec(fnbody)
+			const helpernameresult = /;([a-zA-Z0-9$_]+?)\..+?\(/.exec(fnbody)
 			const helpername = helpernameresult[1]
 			const helperresult = new RegExp('var ' + escapeRegExp(helpername) + '={[\\s\\S]+?};').exec(data)
 			const helper = helperresult[0]
@@ -75,9 +79,7 @@
 		logger.log(`video %s playerResponse: %o`, id, playerResponse)
 		let stream = []
 		if (playerResponse.streamingData.formats) {
-			stream = playerResponse.streamingData.formats.map(x =>
-				Object.assign({}, x, parseQuery(x.cipher || x.signatureCipher))
-			)
+			stream = playerResponse.streamingData.formats.map(x => Object.assign({}, x, parseQuery(x.cipher || x.signatureCipher)))
 			logger.log(`video %s stream: %o`, id, stream)
 			for (const obj of stream) {
 				if (obj.s) {
@@ -89,7 +91,9 @@
 
 		let adaptive = []
 		if (playerResponse.streamingData.adaptiveFormats) {
-			adaptive = playerResponse.streamingData.adaptiveFormats.map(x => Object.assign({}, x, parseQuery(x.cipher || x.signatureCipher)))
+			adaptive = playerResponse.streamingData.adaptiveFormats.map(x =>
+				Object.assign({}, x, parseQuery(x.cipher || x.signatureCipher))
+			)
 			logger.log(`video %s adaptive: %o`, id, adaptive)
 			for (const obj of adaptive) {
 				if (obj.s) {
@@ -98,14 +102,14 @@
 				}
 			}
 		}
-		logger.log(`video %s result: %o`, id, { stream, adaptive })
-		return { stream, adaptive, details: playerResponse.videoDetails, playerResponse }
+		logger.log(`video %s result: %o`, id, {
+			stream, adaptive
+		})
+		return {
+			stream, adaptive, details: playerResponse.videoDetails, playerResponse
+		}
 	}
 
-	const determineChunksNum = size => {
-		const n = Math.ceil(size / (1024 * 1024 * 3)) // 3 MB
-		return n
-	}
 	// video downloader
 	const xhrDownloadUint8Array = async ({ url, contentLength }, progressCb) => {
 		if (typeof contentLength === 'string') contentLength = parseInt(contentLength)
@@ -115,10 +119,13 @@
 			speed: 0
 		})
 		const chunkSize = 65536
-		const getBuffer = (start, end) => fetch(url + `&range=${start}-${end ? end - 1 : ''}`).then(r=>r.arrayBuffer())
+		const getBuffer = (start, end) =>
+			fetch(url + `&range=${start}-${end ? end - 1 : ''}`).then(r => r.arrayBuffer())
 		const data = new Uint8Array(contentLength)
 		let downloaded = 0
-		const queue = new pQueue.default({ concurrency: 6 })
+		const queue = new pQueue.default({
+			concurrency: 6
+		})
 		const startTime = Date.now()
 		const ps = []
 		for (let start = 0; start < contentLength; start += chunkSize) {
@@ -143,7 +150,7 @@
 						queue.clear()
 						alert('Download error')
 					})
-					    })
+			})
 			ps.push(p)
 		}
 		await Promise.all(ps)
@@ -158,7 +165,10 @@
 		if (!ffWorkerLoaded) await ffWorker.load()
 		await ffWorker.write('video.mp4', video)
 		await ffWorker.write('audio.mp4', audio)
-		await ffWorker.run('-i video.mp4 -i audio.mp4 -c copy output.mp4', { input: ['video.mp4', 'audio.mp4'], output: 'output.mp4' })
+		await ffWorker.run('-i video.mp4 -i audio.mp4 -c copy output.mp4', {
+			input: ['video.mp4', 'audio.mp4'],
+			output: 'output.mp4'
+		})
 		const { data } = await ffWorker.read('output.mp4')
 		await ffWorker.remove('output.mp4')
 		return data
@@ -194,6 +204,7 @@
 	</div>
 </div>
 `
+
 	function openDownloadModel(adaptive, title, type) {
 		const win = open(
 			'',
@@ -340,12 +351,12 @@
 			dllow() {
 				let vCode = parseInt(prompt("Video code",160))
 				let aCode = parseInt(prompt("Audio code",140))
-				openDownloadModel(this.adaptive, this.details.title, vCode + '|' + aCode)
+        openDownloadModel(this.adaptive, this.details.title, vCode + '|' + aCode)
 			},
-			dlmp4() {
-				openDownloadModel(this.adaptive, this.details.title, 'high')
-			},
-			formatText(vid) {
+      dlmp4() {
+        openDownloadModel(this.adaptive, this.details.title, 'high')
+      },
+      formatText(vid) {
 				let id = vid.itag
 				let size = `${(vid.contentLength/1024/1024).toFixed(2)}MiB`
 				if (!vid.contentLength) {
@@ -382,11 +393,11 @@
 	const load = async playerResponse => {
 		try {
 			const basejs =
-				(typeof ytplayer !== 'undefined' && 'config' in ytplayer && ytplayer.config.assets
-					? 'https://' + location.host + ytplayer.config.assets.js
-					: 'web_player_context_config' in ytplayer
-					? 'https://' + location.host + ytplayer.web_player_context_config.jsUrl
-					: null) || $('script[src$="base.js"]').src
+				(typeof ytplayer !== 'undefined' && 'config' in ytplayer && ytplayer.config.assets ?
+					'https://' + location.host + ytplayer.config.assets.js :
+					'web_player_context_config' in ytplayer ?
+					'https://' + location.host + ytplayer.web_player_context_config.jsUrl :
+					null) || $('script[src$="base.js"]').src
 			const decsig = await xf.get(basejs).text(parseDecsig)
 			const id = parseQuery(location.search).v
 			const data = parseResponse(id, playerResponse, decsig)
@@ -442,7 +453,9 @@
 	const $html = $('html')
 	new MutationObserver(() => {
 		app.dark = $html.getAttribute('dark') !== null
-	}).observe($html, { attributes: true })
+	}).observe($html, {
+		attributes: true
+	})
 	app.dark = $html.getAttribute('dark') !== null
 
 	const css = `
@@ -465,8 +478,8 @@
 	overflow: hidden;
 }
 .box{
-	padding-top: .5em;
-	padding-bottom: .5em;
+  padding-top: .5em;
+  padding-bottom: .5em;
 	border-bottom: 1px solid var(--yt-border-color);
 	font-family: Arial;
 }
@@ -511,5 +524,19 @@ a:hover, .div-a:hover{
 	line-height: 20px;
 }
 `
-	shadow.appendChild($el('style', { textContent: css }))
+	shadow.appendChild($el('style', {
+		textContent: css
+	}))
+	const css2 = `
+#meta-contents, #info-contents{
+	display: contents !important;
+}
+
+ytd-watch-metadata.style-scope {
+	display: none !important;
+}
+`
+	document.body.appendChild($el('style', {
+		textContent: css2
+	}))
 })()
