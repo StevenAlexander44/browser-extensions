@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         Local YouTube Downloader
-// @version      1.3
+// @version      1.4
 // @author       Some Guy
 // @description  Download YouTube videos without external service.
 // @match        https://*.youtube.com/*
@@ -390,8 +390,8 @@
 			app.id = id
 			app.stream = data.stream
 			app.video = data.adaptive.filter(x => x.mimeType.includes('video'));
-			app.highvideo = app.video.filter(x => parseInt(x.qualityLabel) > 720);
-			app.lowvideo = app.video.filter(x => parseInt(x.qualityLabel) <= 720);
+			app.highvideo = app.video.filter(x => (parseInt(x.qualityLabel) > 720 || parseInt(x.fps) > 30));
+			app.lowvideo = app.video.filter(x => parseInt(x.qualityLabel) <= 720 && parseInt(x.fps) <= 30);
 			app.audio = data.adaptive.filter(x => x.mimeType.includes('audio'));
 			app.details = data.details
 		}
